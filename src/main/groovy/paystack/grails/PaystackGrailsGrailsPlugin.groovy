@@ -13,8 +13,8 @@ class PaystackGrailsGrailsPlugin extends Plugin {
 
     // TODO Fill in these fields
     def title = "Paystack Grails" // Headline display name of the plugin
-    def author = "Your name"
-    def authorEmail = ""
+    def author = "Nriagu Dubem"
+    def authorEmail = "nriagudubem@gmail.com"
     def description = '''\
 Brief summary/description of the plugin.
 '''
