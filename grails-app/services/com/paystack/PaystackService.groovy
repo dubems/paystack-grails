@@ -5,13 +5,15 @@ import grails.transaction.Transactional
 @Transactional
 class PaystackService {
 
-
+    /**
+     * PaystackService Constructor
+     */
      PaystackService() {
 
     }
     /**
      * Get authorization url from paystack
-     * The authorization url is to redirect to paystack for paymente
+     * The authorization url is to redirect to paystack for payment
      * @return
      */
     def getAuthorizationUrl()
@@ -59,7 +61,7 @@ class PaystackService {
      * this is used to verify the transaction
      * @return
      */
-    def generateTrxnRef()
+    String generateTrxnRef()
     {
         List numPool = 0..9
         List alphaPoolCapital = 'A'..'Z'
@@ -69,7 +71,7 @@ class PaystackService {
         List shuffledPool = Collections.shuffle(allPool)
         def trxnReference = shuffledPool.subList(0,32)
 
-        return trxnReference
+        return trxnReference.toString()
 
     }
 }
