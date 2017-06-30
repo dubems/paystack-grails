@@ -2,6 +2,10 @@ package com.paystack
 
 import grails.transaction.Transactional
 
+/**
+ * @athor Nriagu Chidubem
+ * @email nriagudubem@gmail.com
+ */
 @Transactional
 class PaystackService {
 
