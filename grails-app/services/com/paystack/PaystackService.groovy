@@ -78,4 +78,39 @@ class PaystackService {
         return trxnReference.toString()
 
     }
+
+    /**
+     * Verify a transaction
+     * @param reference : transaction reference
+     * @return : response from paystack
+     */
+    Map verify(String reference) {
+        String authString = ""
+        if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() || Environment.current.name == "${Environment.TEST}".toLowerCase()){
+            authString = "Bearer " + grailsApplication.config.paystack.testSecretKey
+        }
+        else{
+            authString = "Bearer " + grailsApplication.config.paystack.liveSecretKey
+        }
+        
+        String contentType = "application/json"
+        String url = "${grailsApplication.config.paystack.endpoint}/transaction/verify/${reference}"
+        
+        CredentialsProvider provider = new BasicCredentialsProvider()  
+        
+        HttpClient client = HttpClientBuilder.create().build()
+
+        HttpGet httpGet = new HttpGet(url)
+        httpGet.addHeader("Authorization",authString)
+
+
+        CloseableHttpResponse  result = client.execute(httpGet)
+        HttpEntity entity = result.getEntity() // get result
+        String responseBody = EntityUtils.toString(entity); // extract response body
+        def jsonSlurper = new JsonSlurper() // for parsing response
+        def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
+        
+        result.close()
+        return responseMap as Map
+    }
 }

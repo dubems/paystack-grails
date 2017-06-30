@@ -16,7 +16,7 @@ class PaystackGrailsGrailsPlugin extends Plugin {
     def author = "Nriagu Dubem"
     def authorEmail = "nriagudubem@gmail.com"
     def description = '''\
-Brief summary/description of the plugin.
+Enable a grails application to process payments via PayStack service
 '''
     def profiles = ['web']
 
@@ -26,7 +26,7 @@ Brief summary/description of the plugin.
     // Extra (optional) plugin metadata
 
     // License: one of 'APACHE', 'GPL2', 'GPL3'
-//    def license = "APACHE"
+    def license = "APACHE"
 
     // Details of company behind the plugin (if there is one)
 //    def organization = [ name: "My Company", url: "http://www.my-company.com/" ]
