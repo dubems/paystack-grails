@@ -82,4 +82,6 @@ endpoints:
 paystack: 
     liveSecretKey: '${PAYSTACK_LIVE_SECRET_KEY}'
     testSecretKey: '${PAYSTACK_TEST_SECRET_KEY}'
-    endpoint: '{PAYSTACK_ENDPOINT}'
+    livePublicKey: '${PAYSTACK_LIVE_PUBLIC_KEY}'
+    testPublicKey: '${PAYSTACK_TEST_PUBLIC_KEY}'
+    endpoint:      '{PAYSTACK_ENDPOINT}'
