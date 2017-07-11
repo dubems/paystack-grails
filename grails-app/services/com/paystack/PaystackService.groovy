@@ -256,7 +256,7 @@ class PaystackService {
     Map createCustomer(params){
 
         String authString = "Bearer" +secretKey
-        String url = endPoint+"/transaction/"+id
+        String url = endPoint+"/customer"
 
         Map reqParams = [
                 email: params.email,
