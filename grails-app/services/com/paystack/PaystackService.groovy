@@ -224,7 +224,7 @@ class PaystackService {
     }
 
     /**
-     * List Transactions
+     * List All Transactions
      * @return
      */
     Map listTransactions(){
@@ -233,5 +233,39 @@ class PaystackService {
         String url = endPoint+"/transaction/"
 
         return this.getRequest(url,authString)
+    }
+
+    /**
+     * Fetch a particular transaction
+     * @param id  : identifier of transaction to fetch
+     * @return
+     */
+    Map fetchTransaction(int id){
+
+        String authString = "Bearer" +secretKey
+        String url = endPoint+"/transaction/"+id
+
+        return this.getRequest(url,authString)
+    }
+
+    /**
+     * Create a customer
+     * @param params
+     * @return
+     */
+    Map createCustomer(params){
+
+        String authString = "Bearer" +secretKey
+        String url = endPoint+"/transaction/"+id
+
+        Map reqParams = [
+                email: params.email,
+                first_name: params.first_name,
+                last_name: params.last_name,
+                phone:params.phone,
+                metadata: params.metadata
+        ]
+
+        return this.postRequest(url,reqParams,authString)
     }
 }
