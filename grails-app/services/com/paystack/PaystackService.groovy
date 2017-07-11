@@ -4,10 +4,15 @@ import grails.transaction.Transactional
 import grails.util.Environment
 import groovy.json.JsonSlurper
 import org.apache.http.client.CredentialsProvider
+import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpGet
+import org.apache.http.client.methods.HttpPost
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.message.BasicNameValuePair
+import org.apache.http.util.EntityUtils
+import org.aspectj.apache.bcel.classfile.annotation.NameValuePair
 import org.springframework.http.HttpEntity
 import sun.net.www.http.HttpClient
 
@@ -107,6 +112,9 @@ class PaystackService {
      */
     def makePaymentRequest(params)
     {
+        String authString = "Bearer" +secretKey
+        String url = endPoint+"/transaction/initialize"
+
         Map reqParams = [
                 amount:params.amount,
                 email:params.email,
@@ -116,8 +124,10 @@ class PaystackService {
                 last_name:params.last_name,
                 metadata:params.metadata,
                 callback_url:params.callback_url
-
         ]
+
+         return this.postRequest(url,reqParams,authString)
+
     }
 
     /**
@@ -139,10 +149,6 @@ class PaystackService {
 
     }
 
-     def  callAPIEndpoint(String url, Map body,String method)
-    {
-
-    }
 
     /**
      * Verify a transaction
@@ -152,24 +158,80 @@ class PaystackService {
      Map verify(String reference) {
 
          String authString = "Bearer" +secretKey
-         String contentType = "application/json"
          String url = endPoint+"/transaction/verify/${reference}"
-        
+
+         return this.getRequest(url,authString)
+
+    }
+
+    /**
+     * Make A get request to the specified resource(url)
+     * @param url
+     * @param authString
+     * @return
+     */
+    Map getRequest(String url,String authString)
+    {
         CredentialsProvider provider = new BasicCredentialsProvider()
-        
+
         HttpClient client = HttpClientBuilder.create().build()
 
         HttpGet httpGet = new HttpGet(url)
         httpGet.addHeader("Authorization",authString)
-
 
         CloseableHttpResponse result = client.execute(httpGet)
         HttpEntity entity = result.getEntity() // get result
         String responseBody = EntityUtils.toString(entity); // extract response body
         def jsonSlurper = new JsonSlurper() // for parsing response
         def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
-        
+
         result.close()
         return responseMap as Map
+    }
+
+    /**
+     * Make a post request the the specified resource(url)
+     * @param url
+     * @param data
+     * @param authString
+     * @return
+     */
+    Map postRequest(String url, Map data,String authString)
+    {
+        HttpClient client = HttpClientBuilder.create().build()
+        HttpPost  request = new HttpPost(url)
+        request.setHeader("Authorization",authString)
+        request.setHeader("Content-Type",'application/json')
+
+        List<NameValuePair> postParams = new ArrayList<NameValuePair>()
+
+        //loop through the data sent and add them to the request body
+        data.each {key,value->
+            postParams.add(new BasicNameValuePair(key,value))
+        }
+
+        request.setEntity(new UrlEncodedFormEntity(postParams))
+
+        CloseableHttpResponse response = client.execute(request)
+        HttpEntity entity   = response.getEntity
+        String responseBody = EntityUtils.toString(entity)
+        def jsonSlurper = new JsonSlurper() // for parsing response
+        def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
+        response.close()
+
+        return responseMap as Map
+
+    }
+
+    /**
+     * List Transactions
+     * @return
+     */
+    Map listTransactions(){
+
+        String authString = "Bearer" +secretKey
+        String url = endPoint+"/transaction/"
+
+        return this.getRequest(url,authString)
     }
 }
