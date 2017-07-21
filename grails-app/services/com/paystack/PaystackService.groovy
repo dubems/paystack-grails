@@ -213,6 +213,9 @@ class PaystackService {
         response.close()
 
         return responseMap as Map
+    }
+
+    Map putRequest(){
 
     }
 
@@ -270,6 +273,19 @@ class PaystackService {
     }
 
     /**
+     * Return a single customer given its id
+     * @param customerId
+     * @return
+     */
+    Map fetchCustomer(customerId){
+
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+"/customer/"+customerId
+        return this.getRequest(url,authString)
+
+    }
+
+    /**
      * Return all plans on your paystack account
      * @return
      */
@@ -292,7 +308,7 @@ class PaystackService {
     }
 
     /**
-     *
+     * Create plan
      * @return
      */
     Map createPlan(params){
@@ -309,5 +325,25 @@ class PaystackService {
         ]
 
         return postRequest(url,reqParams,authString)
+    }
+
+    /**
+     * Get a particular plan given the plan id
+     * @param planId
+     * @return
+     */
+    Map fetchPlan(planId){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/plan/'+planId
+
+        return getRequest(url,authString)
+    }
+
+    /**
+     *
+     * @return
+     */
+    Map updatePlan(){
+
     }
 }
