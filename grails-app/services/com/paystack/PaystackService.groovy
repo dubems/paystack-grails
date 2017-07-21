@@ -18,7 +18,7 @@ import sun.net.www.http.HttpClient
 
 /**
  * @athor Nriagu Chidubem
- * @email nriagudubem@gmail.com
+ * @email <nriagudubem@gmail.com>
  */
 @Transactional
 class PaystackService {
@@ -36,7 +36,7 @@ class PaystackService {
      {
          setSecretKey()
          setEndPoint()
-    }
+     }
 
     /**
      * Set PAYSTACK endpoint
@@ -50,10 +50,10 @@ class PaystackService {
      */
     void setSecretKey()
     {
-        if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() || Environment.current.name == "${Environment.TEST}".toLowerCase()){
+        if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
+                Environment.current.name == "${Environment.TEST}".toLowerCase()){
             secretKey =  grailsApplication.config.paystack.testSecretKey
-        }
-        else{
+        } else{
              secretKey = grailsApplication.config.paystack.liveSecretKey
         }
 
@@ -65,10 +65,10 @@ class PaystackService {
      */
     void setPublicKey()
     {
-        if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() || Environment.current.name == "${Environment.TEST}".toLowerCase()){
+        if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
+                Environment.current.name == "${Environment.TEST}".toLowerCase()){
             publicKey =  grailsApplication.config.paystack.testPublicKey
-        }
-        else{
+        } else{
             publicKey = grailsApplication.config.paystack.livePublicKey
         }
     }
@@ -80,7 +80,8 @@ class PaystackService {
      */
     def getAuthorizationUrl(params)
     {
-        return this.makePaymentRequest(params)
+        def response =  this.makePaymentRequest(params)
+        return response.authorization_url
     }
 
     /**
@@ -98,8 +99,7 @@ class PaystackService {
      */
     def validateParameters(Map params)
     {
-        if(!params.amount || !params.emamil)
-        {
+        if(!params.amount || !params.emamil) {
             throw new Exception('Incomplete Parameters')
         }
         return this
@@ -116,14 +116,14 @@ class PaystackService {
         String url = endPoint+"/transaction/initialize"
 
         Map reqParams = [
-                amount:params.amount,
-                email:params.email,
-                reference:this.generateTrxnRef(),
-                plan:params.plan,
-                first_name:params.first_name,
-                last_name:params.last_name,
-                metadata:params.metadata,
-                callback_url:params.callback_url
+                amount       :params.amount,
+                email        :params.email,
+                reference    :this.generateTrxnRef(),
+                plan         :params.plan,
+                first_name   :params.first_name,
+                last_name    :params.last_name,
+                metadata     :params.metadata,
+                callback_url :params.callback_url
         ]
 
          return this.postRequest(url,reqParams,authString)
@@ -140,7 +140,6 @@ class PaystackService {
         List numPool = 0..9
         List alphaPoolCapital = 'A'..'Z'
         List alphaPoolSmall   = 'a'..'z'
-
         List allPool      = (numPool + alphaPoolCapital + alphaPoolSmall)
         List shuffledPool = Collections.shuffle(allPool)
         def trxnReference = shuffledPool.subList(0,32)
@@ -161,7 +160,6 @@ class PaystackService {
          String url = endPoint+"/transaction/verify/${reference}"
 
          return this.getRequest(url,authString)
-
     }
 
     /**
@@ -173,12 +171,9 @@ class PaystackService {
     Map getRequest(String url,String authString)
     {
         CredentialsProvider provider = new BasicCredentialsProvider()
-
         HttpClient client = HttpClientBuilder.create().build()
-
         HttpGet httpGet = new HttpGet(url)
         httpGet.addHeader("Authorization",authString)
-
         CloseableHttpResponse result = client.execute(httpGet)
         HttpEntity entity = result.getEntity() // get result
         String responseBody = EntityUtils.toString(entity); // extract response body
@@ -202,7 +197,6 @@ class PaystackService {
         HttpPost  request = new HttpPost(url)
         request.setHeader("Authorization",authString)
         request.setHeader("Content-Type",'application/json')
-
         List<NameValuePair> postParams = new ArrayList<NameValuePair>()
 
         //loop through the data sent and add them to the request body
@@ -211,7 +205,6 @@ class PaystackService {
         }
 
         request.setEntity(new UrlEncodedFormEntity(postParams))
-
         CloseableHttpResponse response = client.execute(request)
         HttpEntity entity   = response.getEntity
         String responseBody = EntityUtils.toString(entity)
@@ -228,7 +221,6 @@ class PaystackService {
      * @return
      */
     Map listTransactions(){
-
         String authString = "Bearer" +secretKey
         String url = endPoint+"/transaction/"
 
@@ -241,7 +233,6 @@ class PaystackService {
      * @return
      */
     Map fetchTransaction(int id){
-
         String authString = "Bearer" +secretKey
         String url = endPoint+"/transaction/"+id
 
@@ -254,18 +245,27 @@ class PaystackService {
      * @return
      */
     Map createCustomer(params){
-
         String authString = "Bearer" +secretKey
         String url = endPoint+"/customer"
 
         Map reqParams = [
-                email: params.email,
-                first_name: params.first_name,
-                last_name: params.last_name,
-                phone:params.phone,
-                metadata: params.metadata
+                email        : params.email,
+                first_name   : params.first_name,
+                last_name    : params.last_name,
+                phone        :params.phone,
+                metadata     : params.metadata
         ]
-
         return this.postRequest(url,reqParams,authString)
+    }
+
+    /**
+     *List all customers
+     * @return
+     */
+    Map listCustomers(){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/customer'
+
+        return this.getRequest(url,authString)
     }
 }
