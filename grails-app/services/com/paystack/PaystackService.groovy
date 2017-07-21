@@ -259,13 +259,55 @@ class PaystackService {
     }
 
     /**
-     *List all customers
+     *List all customers on your Paystack account
      * @return
      */
-    Map listCustomers(){
+    Map getAllCustomers(){
         String authString = 'Bearer'+secretKey
         String url        = endPoint+'/customer'
 
         return this.getRequest(url,authString)
+    }
+
+    /**
+     * Return all plans on your paystack account
+     * @return
+     */
+    Map getAllPlans(){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/plan'
+
+        return this.getRequest(url,authString)
+    }
+
+    /**
+     * Return all transactions on you paystack account
+     * @return
+     */
+    Map getAllTransactions(){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/transaction'
+
+        return this.getRequest(url,authString)
+    }
+
+    /**
+     *
+     * @return
+     */
+    Map createPlan(params){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/plan'
+
+        Map reqParams = [
+                name           : params.name,
+                description    : params.description,
+                amount         : params.amount,
+                send_invoices  : params.send_invoices,
+                send_sms       : params.send_sms,
+                currency       : params.currency,
+        ]
+
+        return postRequest(url,reqParams,authString)
     }
 }
