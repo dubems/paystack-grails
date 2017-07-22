@@ -340,10 +340,17 @@ class PaystackService {
     }
 
     /**
-     *
+     * Export transactions for your paystack account
      * @return
      */
-    Map updatePlan(){
+    Map exportransaction(params){
+        String authString = 'Bearer'+secretKey
+        def from          = params.from
+        def to            = params.to
+        boolean settled   = params.settled
+        String url        = endPoint+'/transaction/export?from='+from+'to='+to+'settled='+settled
 
+        return this.getRequest(url,authString)
     }
+
 }
