@@ -340,7 +340,8 @@ class PaystackService {
     }
 
     /**
-     * Export transactions for your paystack account
+     * Export transaction
+     * @param params
      * @return
      */
     Map exportransaction(params){
@@ -351,6 +352,57 @@ class PaystackService {
         String url        = endPoint+'/transaction/export?from='+from+'to='+to+'settled='+settled
 
         return this.getRequest(url,authString)
+    }
+
+    /**
+     * Create a payment subscription
+     * @param param
+     * @return
+     */
+    Map createSubscription(params) {
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/subscription'
+        def postParams = [
+                customer      : params.customer,
+                plan          : params.plan,
+                authorization : params.authorization
+        ]
+
+        return this.postRequest(url,postParams,authString)
+    }
+
+    /**
+     * Enable a user subscription using code and token
+     * @param params
+     * @return
+     */
+    Map enableSubscription(params){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/subscription/enable'
+
+        def postParam = [
+                code: params.code,
+                token: params.token
+        ]
+
+        return this.postRequest(url,postParam,authString)
+    }
+
+    /**
+     * Disable subscription using  code and token
+     * @param params
+     * @return
+     */
+    Map disableSubscription(params){
+        String authString = 'Bearer'+secretKey
+        String url        = endPoint+'/subscription/disable'
+
+        def postParam = [
+                code: params.code,
+                token: params.token
+        ]
+
+        return this.postRequest(url,postParam,authString)
     }
 
 }
