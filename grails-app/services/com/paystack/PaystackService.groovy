@@ -31,37 +31,30 @@ class PaystackService {
 
     GrailsApplication grailsApplication
 
-    String secretKey
-
-    String publicKey
-
-    String endPoint
-
     /**
      * PaystackService Constructor
      */
-//     PaystackService() {
-//         setSecretKey()
-//         setEndPoint()
-//     }
+     PaystackService() {
+
+     }
 
     /**
      * Set PAYSTACK endpoint
      */
-    void setEndPoint(){
-        endPoint = grailsApplication.config.paystack.endpoint
+    String getEndPoint(){
+       return grailsApplication.config.paystack.endpoint
     }
     /**
      * Set the secret used for API Request
      * When app in dev, use the testSecretKey else use the liveSecretKey
      */
-    void setSecretKey()
+    String getSecretKey()
     {
         if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
                 Environment.current.name == "${Environment.TEST}".toLowerCase()){
-            secretKey =  grailsApplication.config.paystack.testSecretKey
+            return  grailsApplication.config.paystack.testSecretKey
         } else{
-             secretKey = grailsApplication.config.paystack.liveSecretKey
+             return grailsApplication.config.paystack.liveSecretKey
         }
 
     }
@@ -70,13 +63,13 @@ class PaystackService {
      * Set the public key for the API Request
      *  When app in dev, use the testPublicKey else use the livePublicKey
      */
-    void setPublicKey()
+    String getPublicKey()
     {
         if(Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
                 Environment.current.name == "${Environment.TEST}".toLowerCase()){
-            publicKey =  grailsApplication.config.paystack.testPublicKey
+            return  grailsApplication.config.paystack.testPublicKey
         } else{
-            publicKey = grailsApplication.config.paystack.livePublicKey
+            return  grailsApplication.config.paystack.livePublicKey
         }
     }
     /**
@@ -86,10 +79,6 @@ class PaystackService {
      * @return
      */
     def getAuthUrl(params) {
-        this.setSecretKey()
-        this.setPublicKey()
-        this.setEndPoint()
-
         def response =  this.makePaymentRequest(params)
         return response.data?.authorization_url
     }
@@ -156,7 +145,7 @@ class PaystackService {
      */
      Map verify(String reference) {
 
-         String authString = "Bearer" +secretKey
+         String authString = "Bearer " +secretKey
          String url = endPoint+"/transaction/verify/${reference}"
 
          Map response =  this.getRequest(url,authString)
@@ -233,7 +222,7 @@ class PaystackService {
      * @return
      */
     Map listTransactions(){
-        String authString = "Bearer" +secretKey
+        String authString = "Bearer " +secretKey
         String url = endPoint+"/transaction/"
 
         return this.getRequest(url,authString)
@@ -245,7 +234,7 @@ class PaystackService {
      * @return
      */
     Map fetchTransaction(int id){
-        String authString = "Bearer" +secretKey
+        String authString = "Bearer " +secretKey
         String url = endPoint+"/transaction/"+id
 
         return this.getRequest(url,authString)
@@ -257,7 +246,7 @@ class PaystackService {
      * @return
      */
     Map createCustomer(params){
-        String authString = "Bearer" +secretKey
+        String authString = "Bearer " +secretKey
         String url = endPoint+"/customer"
 
         Map reqParams = [
@@ -275,7 +264,7 @@ class PaystackService {
      * @return
      */
     Map getAllCustomers(){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/customer'
 
         return this.getRequest(url,authString)
@@ -288,7 +277,7 @@ class PaystackService {
      */
     Map fetchCustomer(customerId){
 
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+"/customer/"+customerId
         return this.getRequest(url,authString)
 
@@ -299,7 +288,7 @@ class PaystackService {
      * @return
      */
     Map getAllPlans(){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/plan'
 
         return this.getRequest(url,authString)
@@ -310,7 +299,7 @@ class PaystackService {
      * @return
      */
     Map getAllTransactions(){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/transaction'
 
         return this.getRequest(url,authString)
@@ -321,7 +310,7 @@ class PaystackService {
      * @return
      */
     Map createPlan(params){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/plan'
 
         Map reqParams = [
@@ -342,7 +331,7 @@ class PaystackService {
      * @return
      */
     Map fetchPlan(planId){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/plan/'+planId
 
         return getRequest(url,authString)
@@ -354,7 +343,7 @@ class PaystackService {
      * @return
      */
     Map exportransaction(params){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         def from          = params.from
         def to            = params.to
         boolean settled   = params.settled
@@ -369,7 +358,7 @@ class PaystackService {
      * @return
      */
     Map createSubscription(params) {
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/subscription'
         def postParams = [
                 customer      : params.customer,
@@ -386,7 +375,7 @@ class PaystackService {
      * @return
      */
     Map enableSubscription(params){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/subscription/enable'
 
         def postParam = [
@@ -403,7 +392,7 @@ class PaystackService {
      * @return
      */
     Map disableSubscription(params){
-        String authString = 'Bearer'+secretKey
+        String authString = 'Bearer '+secretKey
         String url        = endPoint+'/subscription/disable'
 
         def postParam = [
