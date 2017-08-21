@@ -2,26 +2,34 @@ package com.paystack
 
 import grails.transaction.Transactional
 import grails.util.Environment
+import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import org.apache.http.client.CredentialsProvider
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
+import org.apache.http.entity.ContentType
+import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.BasicCredentialsProvider
+import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.util.EntityUtils
 import org.aspectj.apache.bcel.classfile.annotation.NameValuePair
 import org.springframework.http.HttpEntity
 import sun.net.www.http.HttpClient
+import grails.core.GrailsApplication
 
 /**
  * @athor Nriagu Chidubem
  * @email <nriagudubem@gmail.com>
  */
-@Transactional
+
 class PaystackService {
+
+    GrailsApplication grailsApplication
 
     String secretKey
 
@@ -32,11 +40,10 @@ class PaystackService {
     /**
      * PaystackService Constructor
      */
-     PaystackService()
-     {
-         setSecretKey()
-         setEndPoint()
-     }
+//     PaystackService() {
+//         setSecretKey()
+//         setEndPoint()
+//     }
 
     /**
      * Set PAYSTACK endpoint
@@ -78,18 +85,13 @@ class PaystackService {
      * @params params : this contains info to be sent to PAYSTACK(email, amount,...)
      * @return
      */
-    def getAuthorizationUrl(params)
-    {
+    def getAuthUrl(params) {
+        this.setSecretKey()
+        this.setPublicKey()
+        this.setEndPoint()
+
         def response =  this.makePaymentRequest(params)
-        return response.authorization_url
-    }
-
-    /**
-     * Redirect to the paystack url
-     */
-    def redirectNow(String url)
-    {
-
+        return response.data?.authorization_url
     }
 
     /**
@@ -97,9 +99,8 @@ class PaystackService {
      * @param params
      * @return
      */
-    def validateParameters(Map params)
-    {
-        if(!params.amount || !params.emamil) {
+    def validate(Map params) {
+        if(!params.amount || !params.email) {
             throw new Exception('Incomplete Parameters')
         }
         return this
@@ -110,20 +111,19 @@ class PaystackService {
      * This returns the authorization url
      * @param  params : THis contains info to be sent PAYSTACK(email,amount,...)
      */
-    def makePaymentRequest(params)
-    {
-        String authString = "Bearer" +secretKey
+    def makePaymentRequest(params) {
+        String authString = "Bearer " +secretKey
         String url = endPoint+"/transaction/initialize"
 
         Map reqParams = [
                 amount       :params.amount,
                 email        :params.email,
                 reference    :this.generateTrxnRef(),
-                plan         :params.plan,
-                first_name   :params.first_name,
-                last_name    :params.last_name,
-                metadata     :params.metadata,
-                callback_url :params.callback_url
+                plan         :params.plan?:'',
+                first_name   :params.first_name?:'',
+                last_name    :params.last_name?:'',
+                metadata     :params.metadata?:[:],
+                callback_url :params.callback_url?:''
         ]
 
          return this.postRequest(url,reqParams,authString)
@@ -135,16 +135,16 @@ class PaystackService {
      * this is used to verify the transaction
      * @return
      */
-    String generateTrxnRef()
-    {
+    String generateTrxnRef() {
         List numPool = 0..9
         List alphaPoolCapital = 'A'..'Z'
         List alphaPoolSmall   = 'a'..'z'
         List allPool      = (numPool + alphaPoolCapital + alphaPoolSmall)
-        List shuffledPool = Collections.shuffle(allPool)
-        def trxnReference = shuffledPool.subList(0,32)
+        Collections.shuffle(allPool)
+        def trxnReference = allPool.subList(0,32)
+        String result = trxnReference.join("")
 
-        return trxnReference.toString()
+        return result
 
     }
 
@@ -159,7 +159,20 @@ class PaystackService {
          String authString = "Bearer" +secretKey
          String url = endPoint+"/transaction/verify/${reference}"
 
-         return this.getRequest(url,authString)
+         Map response =  this.getRequest(url,authString)
+         if(response?.data?.status == "failed"){
+             throw  new Exception("Transaction can not be verified")
+         }
+
+         return response
+    }
+    /**
+     * Get the payment data from paystack after verification
+     * @param params
+     * @return
+     */
+    Map getPaymentData(params){
+        return this.verify(params?.reference)
     }
 
     /**
@@ -171,11 +184,11 @@ class PaystackService {
     Map getRequest(String url,String authString)
     {
         CredentialsProvider provider = new BasicCredentialsProvider()
-        HttpClient client = HttpClientBuilder.create().build()
+        CloseableHttpClient client = HttpClientBuilder.create().build()
         HttpGet httpGet = new HttpGet(url)
         httpGet.addHeader("Authorization",authString)
         CloseableHttpResponse result = client.execute(httpGet)
-        HttpEntity entity = result.getEntity() // get result
+        def entity = result.getEntity() // get result
         String responseBody = EntityUtils.toString(entity); // extract response body
         def jsonSlurper = new JsonSlurper() // for parsing response
         def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
@@ -193,24 +206,20 @@ class PaystackService {
      */
     Map postRequest(String url, Map data,String authString)
     {
-        HttpClient client = HttpClientBuilder.create().build()
-        HttpPost  request = new HttpPost(url)
+        def postParams = new JsonBuilder(data).toPrettyString()
+        CloseableHttpClient client = HttpClients.createDefault()
+        StringEntity requestEntity = new StringEntity(
+                postParams,
+                ContentType.APPLICATION_JSON)
+        HttpPost request = new HttpPost(url)
         request.setHeader("Authorization",authString)
-        request.setHeader("Content-Type",'application/json')
-        List<NameValuePair> postParams = new ArrayList<NameValuePair>()
-
-        //loop through the data sent and add them to the request body
-        data.each {key,value->
-            postParams.add(new BasicNameValuePair(key,value))
-        }
-
-        request.setEntity(new UrlEncodedFormEntity(postParams))
+        request.setEntity(requestEntity)
         CloseableHttpResponse response = client.execute(request)
-        HttpEntity entity   = response.getEntity
+        def entity          = response.getEntity()
         String responseBody = EntityUtils.toString(entity)
-        def jsonSlurper = new JsonSlurper() // for parsing response
-        def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
-        response.close()
+        def jsonSlurper     = new JsonSlurper() // for parsing response
+        def responseMap     = jsonSlurper.parseText(responseBody); // parse into json object
+        response.close() // free system resources
 
         return responseMap as Map
     }
