@@ -167,17 +167,16 @@ class PaystackService {
      */
     Map getRequest(String url,String authString)
     {
-        CredentialsProvider provider = new BasicCredentialsProvider()
         CloseableHttpClient client = HttpClientBuilder.create().build()
-        HttpGet httpGet = new HttpGet(url)
+        HttpGet httpGet = getHttpGet(url)
         httpGet.addHeader("Authorization",authString)
         CloseableHttpResponse result = client.execute(httpGet)
         def entity = result.getEntity() // get result
         String responseBody = EntityUtils.toString(entity); // extract response body
-        def jsonSlurper = new JsonSlurper() // for parsing response
+        def jsonSlurper =  getJsonSlurper() // for parsing response
         def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
-
         result.close()
+
         return responseMap as Map
     }
 
@@ -190,22 +189,41 @@ class PaystackService {
      */
     Map postRequest(String url, Map data,String authString)
     {
-        def postParams = new JsonBuilder(data).toPrettyString()
+        def postParams =  getJsonBuilder(data).toPrettyString()
         CloseableHttpClient client = HttpClients.createDefault()
-        StringEntity requestEntity = new StringEntity(
+        StringEntity requestEntity =  this.getStringEntity(
                 postParams,
                 ContentType.APPLICATION_JSON)
-        HttpPost request = new HttpPost(url)
+        HttpPost request = this.getHttpPost(url)
         request.setHeader("Authorization",authString)
         request.setEntity(requestEntity)
         CloseableHttpResponse response = client.execute(request)
         def entity          = response.getEntity()
         String responseBody = EntityUtils.toString(entity)
-        def jsonSlurper     = new JsonSlurper() // for parsing response
+        def jsonSlurper     = this.getJsonSlurper() // for parsing response
         def responseMap     = jsonSlurper.parseText(responseBody); // parse into json object
         response.close() // free system resources
 
         return responseMap as Map
+    }
+
+    JsonBuilder getJsonBuilder(Map data){
+        return new JsonBuilder(data)
+    }
+
+    StringEntity getStringEntity(postParams,contentType){
+        return new StringEntity(postParams,contentType)
+    }
+
+    HttpGet getHttpGet(String url){
+        return new HttpGet(url)
+    }
+    HttpPost getHttpPost(String url){
+        return new HttpPost(url)
+    }
+
+    JsonSlurper getJsonSlurper(){
+        return new JsonSlurper()
     }
 
     Map putRequest(){
