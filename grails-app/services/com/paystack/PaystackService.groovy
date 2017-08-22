@@ -5,7 +5,6 @@ import grails.util.Environment
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import org.apache.http.client.CredentialsProvider
-import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
@@ -15,11 +14,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.client.HttpClients
-import org.apache.http.message.BasicNameValuePair
 import org.apache.http.util.EntityUtils
-import org.aspectj.apache.bcel.classfile.annotation.NameValuePair
-import org.springframework.http.HttpEntity
-import sun.net.www.http.HttpClient
 import grails.core.GrailsApplication
 
 /**
@@ -39,13 +34,13 @@ class PaystackService {
      }
 
     /**
-     * Set PAYSTACK endpoint
+     * get PAYSTACK endpoint
      */
     String getEndPoint(){
        return grailsApplication.config.paystack.endpoint
     }
     /**
-     * Set the secret used for API Request
+     * get the secret used for API Request
      * When app in dev, use the testSecretKey else use the liveSecretKey
      */
     String getSecretKey()
@@ -60,7 +55,7 @@ class PaystackService {
     }
 
     /**
-     * Set the public key for the API Request
+     * get the public key for the API Request
      *  When app in dev, use the testPublicKey else use the livePublicKey
      */
     String getPublicKey()
@@ -249,12 +244,16 @@ class PaystackService {
         String authString = "Bearer " +secretKey
         String url = endPoint+"/customer"
 
+        if(!params.email){
+            throw new Exception("Kindly provide customers email")
+        }
+
         Map reqParams = [
                 email        : params.email,
-                first_name   : params.first_name,
-                last_name    : params.last_name,
-                phone        :params.phone,
-                metadata     : params.metadata
+                first_name   : params.first_name?:"",
+                last_name    : params.last_name?:"",
+                phone        : params.phone?:"",
+                metadata     : params.metadata?:[:]
         ]
         return this.postRequest(url,reqParams,authString)
     }
@@ -313,16 +312,38 @@ class PaystackService {
         String authString = 'Bearer '+secretKey
         String url        = endPoint+'/plan'
 
-        Map reqParams = [
-                name           : params.name,
-                description    : params.description,
-                amount         : params.amount,
-                send_invoices  : params.send_invoices,
-                send_sms       : params.send_sms,
-                currency       : params.currency,
-        ]
+        if(verifyPlanInterval(params.interval)){
+            println(params.interval)
+            Map reqParams = [
+                    name           : params.name,
+                    description    : params.description,
+                    amount         : params.amount,
+                    send_invoices  : params.send_invoices,
+                    send_sms       : params.send_sms,
+                    currency       : params.currency,
+                    interval       : params.interval
+            ]
 
-        return postRequest(url,reqParams,authString)
+            return postRequest(url,reqParams,authString)
+        }
+
+        throw new Exception(params.interval+" Is not a valid interval format")
+
+
+    }
+
+    /**
+     * Verify the plan interval for plan creation
+      * @param interval
+     * @return
+     */
+    boolean verifyPlanInterval(String interval){
+        List intervals = ["hourly","daily","weekly","monthly","annually"]
+        if(interval in intervals){
+            return true
+        }
+
+       return false
     }
 
     /**
@@ -355,6 +376,11 @@ class PaystackService {
     /**
      * Create a payment subscription
      * @param param
+     * @internal email: customers email address
+     * plan(string): plan code
+     * authorization(string): customers autorization code
+     * start_date(String): First debit date (ISO 8601 format)
+     *
      * @return
      */
     Map createSubscription(params) {
@@ -363,7 +389,8 @@ class PaystackService {
         def postParams = [
                 customer      : params.customer,
                 plan          : params.plan,
-                authorization : params.authorization
+                authorization : params.authorization,
+                start_date    : params.startDate
         ]
 
         return this.postRequest(url,postParams,authString)
@@ -402,5 +429,6 @@ class PaystackService {
 
         return this.postRequest(url,postParam,authString)
     }
+
 
 }
