@@ -4,13 +4,11 @@ import grails.transaction.Transactional
 import grails.util.Environment
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
-import org.apache.http.client.CredentialsProvider
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.StringEntity
-import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.client.HttpClients
