@@ -1,5 +1,6 @@
 package com.paystack
 
+import grails.core.GrailsApplication
 import grails.test.mixin.TestFor
 import spock.lang.Specification
 
@@ -10,11 +11,17 @@ import spock.lang.Specification
 class PaystackServiceSpec extends Specification {
 
     def paystackService
+    def grailsApplication
 
     def setup() {
          paystackService = Spy(PaystackService){
 
         }
+
+        grailsApplication = Spy(GrailsApplication){
+            config.paystack.testSecretKey >> "wdewedede3"
+        }
+
     }
 
     def cleanup() {
@@ -64,5 +71,17 @@ class PaystackServiceSpec extends Specification {
         thrown(Exception)
 
     }
+
+//    void "Test makePaymentRequest() performs as expected"(){
+//        setup:
+//        def params = [:]
+//
+//        when:""
+//        paystackService.makePaymentRequest(params)
+//
+//        then:""
+//        1*paystackService.postRequest(*_)
+//
+//    }
 
 }
