@@ -128,6 +128,25 @@ class PaystackServiceSpec extends Specification {
     }
 
     void "Test createCustomer() works as expected"(){
+        setup:
+        2*paystackService.getSecretKey() >> "340830okowkeow"
+        2*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"There is no email parameter"
+        def params = [email:""]
+        paystackService.createCustomer(params)
+
+        then:"An exception is thrown"
+        thrown(Exception)
+
+        when:"There is email parameter"
+        def _params = [email: "nriagudubem@gmail.com"]
+        paystackService.createCustomer(_params)
+
+        then:"postRequest() is called"
+        1*paystackService.postRequest(*_) >> [:]
+
+
 
     }
 
