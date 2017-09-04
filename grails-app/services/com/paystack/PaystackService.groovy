@@ -143,7 +143,7 @@ class PaystackService {
 
          Map response =  this.getRequest(url,authString)
          if(response?.data?.status == "failed"){
-             throw  new Exception("Transaction can not be verified")
+             throw  new Exception("Transaction could not be verified")
          }
 
          return response
@@ -224,9 +224,6 @@ class PaystackService {
         return new JsonSlurper()
     }
 
-    Map putRequest(){
-
-    }
 
     /**
      * List All Transactions

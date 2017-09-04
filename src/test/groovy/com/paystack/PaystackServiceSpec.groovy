@@ -11,15 +11,10 @@ import spock.lang.Specification
 class PaystackServiceSpec extends Specification {
 
     def paystackService
-    def grailsApplication
 
     def setup() {
          paystackService = Spy(PaystackService){
 
-        }
-
-        grailsApplication = Spy(GrailsApplication){
-            config.paystack.testSecretKey >> "wdewedede3"
         }
 
     }
@@ -72,16 +67,68 @@ class PaystackServiceSpec extends Specification {
 
     }
 
-//    void "Test makePaymentRequest() performs as expected"(){
-//        setup:
-//        def params = [:]
-//
-//        when:""
-//        paystackService.makePaymentRequest(params)
-//
-//        then:""
-//        1*paystackService.postRequest(*_)
-//
-//    }
+
+    void "Test makePaymentRequest() performs as expected"(){
+        setup:
+        def params = [:]
+
+        when:"payment request is made"
+        paystackService.makePaymentRequest(params)
+
+        then:"verify various method calls"
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint() >> "http://paystack.co"
+        1*paystackService.postRequest(*_) >> [:]
+
+    }
+
+    void "Test verify() works as expected "(){
+        setup:
+        2*paystackService.getSecretKey() >> "340830okowkeow"
+        2*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"Verification fails"
+        String reference = 'wewrieor9343'
+        paystackService.verify(reference)
+
+        then:"An Exception is thrown"
+        1*paystackService.getRequest(*_) >> [data:[status:"failed"]]
+        thrown(Exception)
+
+        when:"Verification passes"
+        def response = paystackService.verify(reference)
+
+        then:"response is returned"
+        1*paystackService.getRequest(*_) >> [data:[status:"success"]]
+        response == [data:[status:"success"]]
+    }
+
+    void "Test listTransactions() works as expected"() {
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"listTransactions() is called"
+        paystackService.listTransactions()
+
+        then:"getRequest() is called once"
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+    void "Test fetchTransaction() works as expected"(){
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"fetchTransaction() is called"
+        paystackService.fetchTransaction(232)
+
+        then:""
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+    void "Test createCustomer() works as expected"(){
+
+    }
 
 }
