@@ -220,4 +220,64 @@ class PaystackServiceSpec extends Specification {
         1*paystackService.postRequest(*_) >> [:]
     }
 
+    void "fetchPlan() works as expected"(){
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"fetchPlan() is called"
+        paystackService.fetchPlan(23)
+
+        then:"getRequest() is called once"
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+    void " Test exportTransaction() works as expected"(){
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"exportTransaction() is called"
+        Map params = [:]
+        paystackService.exportTransaction(params)
+
+        then:"getRequest() is called once"
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+
+    void " Test createSubscription() works as expected"(){
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"createSubscription() is called"
+        Map params = [:]
+        paystackService.createSubscription(params)
+
+        then:"postRequest() is called"
+        1*paystackService.postRequest(*_) >> [:]
+    }
+
+    void "Test enableSubscription() works as expected"(){
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"enableSubscription() is called"
+        Map params = [:]
+        paystackService.enableSubscription(params)
+
+        then:"postRequest() is called once"
+        1*paystackService.postRequest(*_) >> [:]
+    }
+
+    void "Test disableSubscription() works as expected"(){
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"disableSubscription() is called"
+        Map params = [:]
+        paystackService.disableSubscription(params)
+
+        then:"postRequest() is called once"
+        1*paystackService.postRequest(*_) >> [:]
+    }
 }

@@ -377,7 +377,7 @@ class PaystackService {
      * @param params
      * @return
      */
-    Map exportransaction(params){
+    Map exportTransaction(params){
         String authString = 'Bearer '+secretKey
         def from          = params.from
         def to            = params.to
