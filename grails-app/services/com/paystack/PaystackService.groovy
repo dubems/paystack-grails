@@ -291,6 +291,7 @@ class PaystackService {
 
         String authString = 'Bearer '+secretKey
         String url        = endPoint+"/customer/"+customerId
+
         return this.getRequest(url,authString)
 
     }
@@ -326,7 +327,7 @@ class PaystackService {
         String url        = endPoint+'/plan'
 
         if(verifyPlanInterval(params.interval)){
-            println(params.interval)
+
             Map reqParams = [
                     name           : params.name,
                     description    : params.description,

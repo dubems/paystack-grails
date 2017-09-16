@@ -146,8 +146,78 @@ class PaystackServiceSpec extends Specification {
         then:"postRequest() is called"
         1*paystackService.postRequest(*_) >> [:]
 
+    }
 
+    void "Test getAllCustomers()  works as expected"(){
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
 
+        when:"getAllCustomers() is called"
+        paystackService.getAllCustomers()
+
+        then:"getRequest() is called"
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+   void "fetchCustomer() works as expected"(){
+       setup:
+       1*paystackService.getSecretKey() >> "340830okowkeow"
+       1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+       when:"fetchCustomer() is called with a customerId"
+       paystackService.fetchCustomer(23)
+
+       then:""
+       1*paystackService.getRequest(*_) >> [:]
+   }
+
+    void "Test getAllPlans() works as expected"(){
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"getAllPlans() is called"
+        paystackService.getAllPlans()
+
+        then:"getRequest() is called once"
+        1*paystackService.getRequest(*_) >> [:]
+
+    }
+
+    void "Test getAllTransactions() works as expected"(){
+        setup:
+        1*paystackService.getSecretKey() >> "340830okowkeow"
+        1*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        when:"getAllTransactions() is called"
+        paystackService.getAllTransactions()
+
+        then:"getRequest() is called once"
+        1*paystackService.getRequest(*_) >> [:]
+    }
+
+    void "Test createPlan() works as expected"(){
+        setup:
+        2*paystackService.getSecretKey() >> "340830okowkeow"
+        2*paystackService.getEndPoint()  >> "http://paystack.co"
+
+        paystackService.verifyPlanInterval(_) >> false
+
+        when:"createPlan() is called is incorrect interval"
+        Map params = [:]
+        paystackService.createPlan(params)
+
+        then:"an exception is thrown"
+        thrown(Exception)
+
+        when:"createPlan() is called with correct interval"
+        paystackService.verifyPlanInterval(_) >> true
+        Map _params = [:]
+        paystackService.createPlan(_params)
+
+        then:"postRequest() is called"
+        1*paystackService.postRequest(*_) >> [:]
     }
 
 }
