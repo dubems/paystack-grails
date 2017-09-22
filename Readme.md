@@ -1,5 +1,6 @@
 
-#Grails-Paystack Plugin
+#Grails Paystack Plugin
+
 ##A Grails plugin to allow communication to paystack API
 
 ## Getting started
