@@ -1,4 +1,4 @@
-package com.dubems.grails.paystack
+package com.dubems
 
 import grails.test.mixin.TestFor
 import spock.lang.Specification
