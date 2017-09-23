@@ -1,4 +1,4 @@
-package com.paystack
+package com.dubems.grails.paystack
 
 import grails.core.GrailsApplication
 import grails.util.Environment
