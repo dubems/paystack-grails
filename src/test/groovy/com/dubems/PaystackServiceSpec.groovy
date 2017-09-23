@@ -6,13 +6,13 @@ import spock.lang.Specification
 /**
  * See the API for {@link grails.test.mixin.services.ServiceUnitTestMixin} for usage instructions
  */
-@TestFor(com.paystack.PaystackService)
+@TestFor(PaystackService)
 class PaystackServiceSpec extends Specification {
 
     def paystackService
 
     def setup() {
-        paystackService = Spy(com.paystack.PaystackService) {
+        paystackService = Spy(PaystackService) {
 
         }
 
@@ -52,7 +52,7 @@ class PaystackServiceSpec extends Specification {
         def response = paystackService.validate(params)
 
         then: "an instance of paystackService is returned"
-        assert response instanceof com.paystack.PaystackService
+        assert response instanceof PaystackService
 
         when: "required parameters are not complete"
         def _params = [:]
