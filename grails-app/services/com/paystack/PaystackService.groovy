@@ -24,13 +24,6 @@ class PaystackService {
     GrailsApplication grailsApplication
 
     /**
-     * PaystackService Constructor
-     */
-    PaystackService() {
-
-    }
-
-    /**
      * get PAYSTACK endpoint
      */
     String getEndPoint() {

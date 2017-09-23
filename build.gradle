@@ -10,14 +10,14 @@ buildscript {
 }
 
 version "0.1"
-group "paystack.grails"
+group "com.dubems.grails.paystack"
 
-apply plugin:"eclipse"
-apply plugin:"idea"
-apply plugin:"org.grails.grails-plugin"
-apply plugin:"org.grails.grails-plugin-publish"
-apply plugin:"org.grails.grails-gsp"
-apply plugin:"asset-pipeline"
+apply plugin: "eclipse"
+apply plugin: "idea"
+apply plugin: "org.grails.grails-plugin"
+apply plugin: "org.grails.grails-plugin-publish"
+apply plugin: "org.grails.grails-gsp"
+apply plugin: "asset-pipeline"
 
 repositories {
     mavenLocal()
@@ -56,10 +56,10 @@ dependencies {
         //        exclude module: "groovy"
     }
 
-    compile(group:'org.apache.httpcomponents',name:'httpclient',version:'4.3.6')
-    compile(group:'org.apache.httpcomponents',name:'fluent-hc',version:'4.3.6')
-    compile(group:'org.apache.httpcomponents',name:'httpclient-cache',version:'4.3.6')
-    compile(group:'org.apache.httpcomponents',name:'httpmime',version:'4.3.6')
+    compile(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.3.6')
+    compile(group: 'org.apache.httpcomponents', name: 'fluent-hc', version: '4.3.6')
+    compile(group: 'org.apache.httpcomponents', name: 'httpclient-cache', version: '4.3.6')
+    compile(group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.3.6')
 }
 
 bootRun {
@@ -69,19 +69,32 @@ bootRun {
 bootRepackage.enabled = false
 grailsPublish {
     // TODO: Provide values here
-    user = 'user'
+    user = 'Nriagu Dubem'
     key = 'key'
-    githubSlug = 'foo/bar'
+    githubSlug = 'dubems'
     license {
         name = 'Apache-2.0'
     }
-    title = "My Plugin"
-    desc = "Full plugin description"
-    developers = [johndoe:"John Doe"]
+    title = "Grails Paystack Plugin"
+    desc = "Plugin to communicate with paystack API"
+    developers = [dubem: "Nriagu Dubem"]
     portalUser = ""
-    portalPassword = ""    
+    portalPassword = ""
 }
 
+pluginBundle {
+    website = 'https://github.com/dubems/paystack-grails'
+    vcsUrl = 'https://github.com/dubems/paystack-grails'
+    description = 'Paystack plugin for integrating with the API'
+    tags = ['paystack', 'grails', 'api']
+
+    plugins {
+        grailsNexmoPlugin {
+            id = 'com.dubems.grails.paystack'
+            displayName = 'Grails Paystack plugin'
+        }
+    }
+}
 
 assets {
     packagePlugin = true
