@@ -6,6 +6,7 @@ buildscript {
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsVersion"
         classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.8.2"
+        classpath "com.gradle.publish:plugin-publish-plugin:0.9.7"
     }
 }
 
@@ -89,7 +90,7 @@ pluginBundle {
     tags = ['paystack', 'grails', 'api']
 
     plugins {
-        grailsNexmoPlugin {
+        grailsPaystackPlugin {
             id = 'com.dubems.grails.paystack'
             displayName = 'Grails Paystack plugin'
         }
