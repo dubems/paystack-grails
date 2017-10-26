@@ -97,6 +97,7 @@ grailsPublish {
         grailsPaystackPlugin {
             id = 'com.dubems.paystack'
             displayName = 'Grails Paystack plugin'
+            version = '0.2'
         }
     }
 }
