@@ -10,7 +10,7 @@ buildscript {
     }
 }
 
-version "0.1"
+version "0.3.1"
 group "com.dubems.paystack"
 
 apply plugin: "eclipse"
@@ -31,6 +31,21 @@ dependencyManagement {
         mavenBom "org.grails:grails-bom:$grailsVersion"
     }
     applyMavenExclusions false
+}
+
+version "0.3.1"
+group "org.grails.plugins"
+bintray {
+    pkg {
+        userOrg = '' // If you want to publish to an organization
+        name = "$project.name"
+        issueTrackerUrl = "https://github.com/dubems/$project.name/issues"
+        vcsUrl = "https://github.com/dubems/$project.name"
+        version {
+            attributes = ['grails-plugin': "$project.group:$project.name"]
+            name = project.version
+        }
+    }
 }
 dependencies {
     compile gradleApi()
@@ -72,11 +87,13 @@ bootRun {
 }
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
+
 grailsPublish {
     // TODO: Provide values here
-    user = 'Nriagu Dubem'
-    key = 'key'
-    githubSlug = 'dubems'
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    githubSlug = 'dubems/paystack-grails'
+    userOrg = '' // Optional
     license {
         name = 'Apache-2.0'
     }
@@ -86,6 +103,7 @@ grailsPublish {
     portalUser = ""
     portalPassword = ""
 }
+
 
  pluginBundle {
     website = 'https://github.com/dubems/paystack-grails'
@@ -97,7 +115,7 @@ grailsPublish {
         grailsPaystackPlugin {
             id = 'com.dubems.paystack'
             displayName = 'Grails Paystack plugin'
-            version = '0.2'
+            version = '0.3.1'
         }
     }
 }
