@@ -63,6 +63,55 @@ class TestController {
     }
 ```
 
+* Other useful methods that implement Paystack endpoints can be found below
+* NB: Methods not listed below can be found in the PaystackService Class
+
+```groovy
+
+    // Injecting PaystackService 
+    PaystackService paystackService
+    
+    /**
+     * Return all customers on your Paystack account
+     * @returns Map
+     */
+    paystackService.getAllCustomers()
+    
+     /**
+     * Return all transactions on Your Paystack account
+     * @returns Map
+     */
+    paystackService.listTransactions()
+
+     /**
+     * Fetch a particular transaction
+     * @param  int id : identifier of transaction to fetch
+     * @return Map
+     */
+    paystackService.fetchTransaction(id)
+    
+    /**
+     * Return a single customer given its id
+     * @param customerId
+     * @return Map
+     */
+    paystackService.fetchCustomer(customerId)
+    
+    /**
+     * Return all plans on your paystack account
+     * @return Map
+     */
+    paystackService.getAllPlans()
+        
+    /**
+     * Get a particular plan given the plan id
+     * @param planId
+     * @return Map
+     */
+    paystackService.fetchPlan(planId)
+    
+```
+
 ## TODO
 - [ ] Complete All Api calls
 - [X] Write Unit tests
