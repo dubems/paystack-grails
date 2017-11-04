@@ -10,7 +10,7 @@ buildscript {
     }
 }
 
-version "0.3.1"
+version "0.3.2"
 group "com.dubems.paystack"
 
 apply plugin: "eclipse"
@@ -115,7 +115,7 @@ grailsPublish {
         grailsPaystackPlugin {
             id = 'com.dubems.paystack'
             displayName = 'Grails Paystack plugin'
-            version = '0.3.1'
+            version = '0.3.2'
         }
     }
 }
