@@ -33,7 +33,7 @@ dependencyManagement {
     applyMavenExclusions false
 }
 
-version "0.3.1"
+version "0.3.2"
 group "org.grails.plugins"
 bintray {
     pkg {
