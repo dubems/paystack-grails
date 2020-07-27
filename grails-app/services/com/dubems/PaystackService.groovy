@@ -424,7 +424,7 @@ class PaystackService implements Utils {
     private static void validatePaystackResponse(final Map<String, String> response) {
         log.error("status ${response?.status}")
         if (response?.status != "true") {
-            throw new PaystackException("An error occurred: ${response?.message ?: "There was an error from paystack :)"}")
+            throw new PaystackException("An error occurred: ${response?.message ?: "Request to paystack was not successful"}")
         }
     }
 }

@@ -266,5 +266,53 @@ class PaystackServiceSpec extends Specification implements ServiceUnitTest<Payst
         then: 'PaystackValidationException is thrown'
         thrown(PaystackValidationExecption)
     }
+
+    void 'test verifyBVNMatch verifies if BVN matches account number'() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when: 'required input parameters are present'
+        Map<String, String> params = [bvn: '009872343211', account_number: '098732323', bank_code: '18973']
+        Map<String, String> response = service.verifyBVNMatch(params)
+
+        then:
+        service.httpUtilityService.postRequest(*_) >> mockResponse
+        assert mockResponse == response
+        0 * _
+
+        when: 'required input parameters are not present'
+        Map<String, String> parameters = [bvn: '', account_number: '', last_name: 'Nriagu']
+        service.verifyBVNMatch(parameters)
+
+        then:
+        service.httpUtilityService.postRequest(*_) >> mockResponse
+        thrown(PaystackValidationExecption)
+        0 * _
+    }
+
+
+    void 'test resolveBVN should return account data when BVN is provided'() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when:
+        final String BVN = '1234567890'
+        Map<String, String> response = service.resolveBVN(BVN)
+
+        then:
+        service.httpUtilityService.getRequest(*_) >> mockResponse
+        response == mockResponse
+        0 * _
+
+        when: 'BVN is null'
+        String bvn = null
+        service.resolveBVN(bvn)
+
+        then:
+        thrown(PaystackValidationExecption)
+        0 * _
+    }
+
 }
+
 
