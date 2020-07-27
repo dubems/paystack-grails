@@ -5,13 +5,14 @@ buildscript {
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsVersion"
-        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.8.2"
+        classpath "com.bertramlabs.plugins:asset-pipeline-gradle:3.0.10"
         classpath "com.gradle.publish:plugin-publish-plugin:0.9.7"
     }
 }
 
-version "0.3.2"
-group "com.dubems.paystack"
+//
+//version "0.3.3"
+//group "com.dubems.paystack"
 
 apply plugin: "eclipse"
 apply plugin: "idea"
@@ -20,6 +21,7 @@ apply plugin: "org.grails.grails-plugin-publish"
 apply plugin: "org.grails.grails-gsp"
 apply plugin: "asset-pipeline"
 apply plugin: "com.gradle.plugin-publish"
+
 
 repositories {
     mavenLocal()
@@ -32,8 +34,14 @@ dependencyManagement {
     }
     applyMavenExclusions false
 }
+configurations {
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+}
 
-version "0.3.2"
+version "0.3.3"
 group "org.grails.plugins"
 bintray {
     pkg {
@@ -47,46 +55,53 @@ bintray {
         }
     }
 }
-dependencies {
-    compile gradleApi()
-    compile localGroovy() //not needed for Java plugins
-    def springVersion = '1.2.7.RELEASE'
-    provided "org.springframework.boot:spring-boot-starter-logging:$springVersion"
-    provided "org.springframework.boot:spring-boot-starter-actuator:$springVersion"
-    provided "org.springframework.boot:spring-boot-autoconfigure:$springVersion"
-    provided "org.springframework.boot:spring-boot-starter-tomcat:$springVersion"
-    provided "org.grails:grails-web-boot:$grailsVersion"
-    provided "org.grails:grails-dependencies:$grailsVersion"
-    provided 'javax.servlet:javax.servlet-api:3.1.0'
-    testCompile "org.grails:grails-plugin-testing:$grailsVersion"
 
-    compile "org.grails:grails-core:$grailsVersion"
-    compile "org.grails.plugins:cache:3.0.2"
-    compile "org.grails.plugins:scaffolding:3.2.1"
-    console "org.grails:grails-console:$grailsVersion"
-    profile "org.grails.profiles:web-plugin:$grailsVersion"
-    provided "org.grails:grails-plugin-services:$grailsVersion"
-    provided "org.grails:grails-plugin-domain-class:$grailsVersion"
-    provided "org.codehaus.groovy:groovy-ant:2.4.7"
-    runtime "com.bertramlabs.plugins:asset-pipeline-grails:2.8.2"
-    testCompile "org.grails.plugins:geb"
-    testRuntime "org.seleniumhq.selenium:selenium-htmlunit-driver:2.47.1"
-    testRuntime "net.sourceforge.htmlunit:htmlunit:2.18"
+dependencies {
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    compile "org.springframework.boot:spring-boot-starter-logging"
+    compile "org.springframework.boot:spring-boot-autoconfigure"
+    compile "org.grails:grails-core"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.boot:spring-boot-starter-tomcat"
+    compile "org.grails:grails-web-boot"
+    compile "org.grails:grails-logging"
+    compile "org.grails:grails-plugin-rest"
+    compile "org.grails:grails-plugin-databinding"
+    compile "org.grails:grails-plugin-i18n"
+    compile "org.grails:grails-plugin-services"
+    compile "org.grails:grails-plugin-url-mappings"
+    compile "org.grails:grails-plugin-interceptors"
+    compile "org.grails.plugins:cache"
+    compile "org.grails.plugins:async"
+    compile "org.grails.plugins:scaffolding"
+    compile "org.grails.plugins:gsp"
     compile('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1')
     compile(group:'org.apache.httpcomponents',name:'httpclient',version:'4.3.6')
     compile(group:'org.apache.httpcomponents',name:'fluent-hc',version:'4.3.6')
     compile(group:'org.apache.httpcomponents',name:'httpclient-cache',version:'4.3.6')
     compile(group:'org.apache.httpcomponents',name:'httpmime',version:'4.3.6')
     compile 'org.grails:grails-datastore-rest-client:5.0.0.RC2'
-
-
+    compileOnly "io.micronaut:micronaut-inject-groovy"
+    console "org.grails:grails-console"
+    profile "org.grails.profiles:web-plugin"
+    runtime "com.bertramlabs.plugins:asset-pipeline-grails:3.0.10"
+    testCompile "org.grails:grails-gorm-testing-support"
+    testCompile "org.mockito:mockito-core"
+    testCompile "org.grails:grails-web-testing-support"
 }
+
 
 bootRun {
-    jvmArgs('-Dspring.output.ansi.enabled=always')
+    ignoreExitValue true
+    jvmArgs(
+            '-Dspring.output.ansi.enabled=always',
+            '-noverify',
+            '-XX:TieredStopAtLevel=1',
+            '-Xmx1024m')
+    sourceResources sourceSets.main
+    String springProfilesActive = 'spring.profiles.active'
+    systemProperty springProfilesActive, System.getProperty(springProfilesActive)
 }
-// enable if you wish to package this plugin as a standalone application
-bootRepackage.enabled = false
 
 grailsPublish {
     // TODO: Provide values here

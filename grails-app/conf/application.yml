@@ -18,12 +18,6 @@ spring:
         template:
             check-template-location: false
 
-# Spring Actuator Endpoints are Disabled by Default
-endpoints:
-    enabled: false
-    jmx:
-        enabled: true
-
 ---
 grails:
     mime:
@@ -71,22 +65,20 @@ grails:
         gsp:
             encoding: UTF-8
             htmlcodec: xml
+
             codecs:
                 expression: html
                 scriptlets: html
                 taglib: none
                 staticparts: none
-endpoints:
-    jmx:
-        unique-names: true
-paystack: 
+#paystack:
+##    liveSecretKey: '${PAYSTACK_LIVE_SECRET_KEY}'
 #    liveSecretKey: '${PAYSTACK_LIVE_SECRET_KEY}'
-    liveSecretKey: '${PAYSTACK_LIVE_SECRET_KEY}'
-#    testSecretKey: '${PAYSTACK_TEST_SECRET_KEY}'
-    testSecretKey: 'sk_test_f9b3d4c83b660c8f1bc8e25e4d0e55c8d3694923'
+##    testSecretKey: '${PAYSTACK_TEST_SECRET_KEY}'
+#    testSecretKey: 'sk_test_f9b3d4c83b660c8f1bc8e25e4d0e55c8d3694923'
+##    livePublicKey: '${PAYSTACK_LIVE_PUBLIC_KEY}'
 #    livePublicKey: '${PAYSTACK_LIVE_PUBLIC_KEY}'
-    livePublicKey: '${PAYSTACK_LIVE_PUBLIC_KEY}'
-#    testPublicKey: '${PAYSTACK_TEST_PUBLIC_KEY}'
-    testPublicKey: 'pk_test_582ad59d5d94ebe5f6fb47ea05727a4a63f9ae7d'
-#    endpoint:      '{PAYSTACK_ENDPOINT}'
-    endpoint:      'https://api.paystack.co'
+##    testPublicKey: '${PAYSTACK_TEST_PUBLIC_KEY}'
+#    testPublicKey: 'pk_test_582ad59d5d94ebe5f6fb47ea05727a4a63f9ae7d'
+##    endpoint:      '{PAYSTACK_ENDPOINT}'
+#    endpoint:      'https://api.paystack.co'
