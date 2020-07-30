@@ -1,282 +1,318 @@
 package com.dubems
 
-import grails.test.mixin.TestFor
+import grails.testing.services.ServiceUnitTest
+import paystack.grails.PaystackPlanInterval
+import paystack.grails.exceptions.PaystackException
+import paystack.grails.exceptions.PaystackValidationExecption
+import paystack.grails.exceptions.VerifyPaymentException
 import spock.lang.Specification
 
-/**
- * See the API for {@link grails.test.mixin.services.ServiceUnitTestMixin} for usage instructions
- */
-@TestFor(PaystackService)
-class PaystackServiceSpec extends Specification {
 
-    def paystackService
+class PaystackServiceSpec extends Specification implements ServiceUnitTest<PaystackService> {
+    HttpUtilityService httpUtilityService
 
     def setup() {
-        paystackService = Spy(PaystackService) {
-
-        }
-
+        httpUtilityService = Mock(HttpUtilityService)
+        service.httpUtilityService = httpUtilityService
+        service.endPoint = 'https://api.paystack.co'
     }
 
-    def cleanup() {
-    }
-
-    void "Test getAuthUrl() returns the expected"() {
+    void "test getAuthUrl returns the expected url"() {
         setup:
-        def params = [:]
-        def expectedUrl = "jjdkfndjwiefjd"
+        Map params = [email: 'nriagudubem@gmail.com', amount: '50000']
+        String expectedUrl = "http://api.paystack.co/reference=XYZ"
 
         when: "response returns an authorization url"
-        def actualUrl = paystackService.getAuthUrl(params)
+        String actualUrl = service.getAuthUrl(params)
 
         then: "the actual url equals the expected url"
-        1 * paystackService.makePaymentRequest(params) >> [data: [authorization_url: expectedUrl]]
+        service.httpUtilityService.postRequest(_ as String, _ as Map, _ as String) >> [status: 'true', data: [authorization_url: expectedUrl]]
         actualUrl == expectedUrl
 
-        when: "response does not return a url"
-        def _actualUrl = paystackService.getAuthUrl(params)
+        when: "response does not return expected url"
+        String url = service.getAuthUrl(params)
 
-        then: ""
-        1 * paystackService.makePaymentRequest(params) >> [:]
-        _actualUrl != expectedUrl
-        _actualUrl == null
-
+        then: "PaystackException is thrown"
+        service.httpUtilityService.postRequest(_ as String, _ as Map, _ as String) >> [status: 'false']
+        url != expectedUrl
+        thrown(PaystackException)
+        0 * _
     }
 
-    void "Test validate() works as expected"() {
-        when: "all required parameters are present"
-        def params = [:]
-        params.email = "nriagudubem@gmail.com"
-        params.amount = "2000000"
+    void "test verifyTransaction should verify transaction correctly"() {
+        given:
+        final String transactionReference = 'trxReference'
+        Map<String, String> expectedResponse = [status: 'true']
 
-        def response = paystackService.validate(params)
+        when: "response status is true"
+        Map<String, String> response = service.verifyTransaction(transactionReference)
 
-        then: "an instance of paystackService is returned"
-        assert response instanceof PaystackService
+        then:
+        service.httpUtilityService.getRequest(*_) >> expectedResponse
+        response == expectedResponse
+        noExceptionThrown()
 
-        when: "required parameters are not complete"
-        def _params = [:]
-        params.email = null
-        params.amount = "300000"
+        when: "response status is false"
+        service.verifyTransaction(transactionReference)
 
-        paystackService.validate(_params)
-
-        then: "An exception is thrown"
-        thrown(Exception)
-
+        then: "VerifyPaymentException is thrown"
+        service.httpUtilityService.getRequest(*_) >> [status: 'failed']
+        thrown(VerifyPaymentException)
+        0 * _
     }
 
+    void "test listTransactions works as expected"() {
+        given:
+        final Map<String, String> params = [customer: '29', amount: '5000']
+        Map<String, String> expectedResponse = [status: 'true', data: [:]]
 
-    void "Test makePaymentRequest() performs as expected"() {
-        setup:
-        def params = [:]
+        when:
+        Map<String, String> response = service.listTransactions(params)
 
-        when: "payment request is made"
-        paystackService.makePaymentRequest(params)
+        then:
+        1 * service.httpUtilityService.getRequest(_ as String, _ as String) >> { String url, String authString ->
+            url == "https://api.paystack.co/transaction?customerr=29&amount=5000"
+            return expectedResponse
+        }
 
-        then: "verify various method calls"
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
-        1 * paystackService.postRequest(*_) >> [:]
-
+        expectedResponse == response
+        0 * _
     }
 
-    void "Test verify() works as expected "() {
-        setup:
-        2 * paystackService.getSecretKey() >> "340830okowkeow"
-        2 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "test fetchTransaction should fetch transaction from paystack"() {
+        given:
+        Map<String, String> expectedResponse = [status: 'true']
 
-        when: "Verification fails"
-        String reference = 'wewrieor9343'
-        paystackService.verify(reference)
+        when:
+        Map<String, String> response = service.fetchTransaction(232)
 
-        then: "An Exception is thrown"
-        1 * paystackService.getRequest(*_) >> [data: [status: "failed"]]
-        thrown(Exception)
-
-        when: "Verification passes"
-        def response = paystackService.verify(reference)
-
-        then: "response is returned"
-        1 * paystackService.getRequest(*_) >> [data: [status: "success"]]
-        response == [data: [status: "success"]]
+        then:
+        1 * service.httpUtilityService.getRequest(*_) >> expectedResponse
+        response == expectedResponse
+        0 * _
     }
 
-    void "Test listTransactions() works as expected"() {
-        setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
-
-        when: "listTransactions() is called"
-        paystackService.listTransactions()
-
-        then: "getRequest() is called once"
-        1 * paystackService.getRequest(*_) >> [:]
-    }
-
-    void "Test fetchTransaction() works as expected"() {
-        setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
-
-        when: "fetchTransaction() is called"
-        paystackService.fetchTransaction(232)
-
-        then: ""
-        1 * paystackService.getRequest(*_) >> [:]
-    }
-
-    void "Test createCustomer() works as expected"() {
-        setup:
-        2 * paystackService.getSecretKey() >> "340830okowkeow"
-        2 * paystackService.getEndPoint() >> "http://paystack.co"
-
+    void "test createCustomer() works as expected"() {
         when: "There is no email parameter"
-        def params = [email: ""]
-        paystackService.createCustomer(params)
+        Map<String, String> params = [email: "", first_name: 'chidubem']
+        service.createCustomer(params)
 
         then: "An exception is thrown"
-        thrown(Exception)
+        thrown(PaystackValidationExecption)
 
-        when: "There is email parameter"
-        def _params = [email: "nriagudubem@gmail.com"]
-        paystackService.createCustomer(_params)
+        when: "There is email parameter and paystack request is not successful"
+        Map<String, String> parameter = [email: "nriagudubem@gmail.com"]
+        service.createCustomer(parameter)
 
-        then: "postRequest() is called"
-        1 * paystackService.postRequest(*_) >> [:]
+        then: "request to paystack in made"
+        service.httpUtilityService.postRequest(*_) >> [status: 'false']
+        thrown(PaystackException)
+        0 * _
+    }
+
+    void "test getAllCustomers works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when:
+        Map<String, String> response = service.getAllCustomers()
+
+        then:
+        1 * service.httpUtilityService.getRequest(*_) >> mockResponse
+        assert mockResponse == response
+        0 * _
+    }
+
+    void "fetchCustomer works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when:
+        Map<String, String> response = service.fetchCustomer(23L)
+
+        then:
+        service.httpUtilityService.getRequest(*_) >> mockResponse
+        mockResponse == response
+        0 * _
 
     }
 
-    void "Test getAllCustomers()  works as expected"() {
+    void "test getAllPlans works as expected"() {
         setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+        Map<String, String> mockResponse = [status: 'true']
 
-        when: "getAllCustomers() is called"
-        paystackService.getAllCustomers()
+        when:
+        Map<String, String> response = service.getAllPlans()
 
-        then: "getRequest() is called"
-        1 * paystackService.getRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.getRequest(*_) >> mockResponse
+        assert mockResponse == response
+        0 * _
     }
 
-    void "fetchCustomer() works as expected"() {
+    void "test getAllTransactions returns the transactions"() {
         setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+        Map<String, String> mockResponse = [status: 'true']
 
-        when: "fetchCustomer() is called with a customerId"
-        paystackService.fetchCustomer(23)
+        when:
+        Map<String, String> response = service.getAllTransactions()
 
-        then: ""
-        1 * paystackService.getRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.getRequest(*_) >> mockResponse
+        mockResponse == response
+        0 * _
     }
 
-    void "Test getAllPlans() works as expected"() {
-        setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "test createPlan works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
 
-        when: "getAllPlans() is called"
-        paystackService.getAllPlans()
+        when: 'Plan interval is verified'
+        Map correctParams = [interval: 'monthly']
+        Map incorrectParams = [interval: 'timely']
+        Map<String, String> response = service.createPlan(correctParams)
 
-        then: "getRequest() is called once"
-        1 * paystackService.getRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.postRequest(*_) >>
+                { String url, Map<String, String> payload, String authString ->
+                    payload.interval == PaystackPlanInterval.MONTHLY.name()
 
+                    return mockResponse
+                }
+
+        mockResponse == response
+        0 * _
+
+        when: 'createPlan is called with in-correct interval'
+        service.createPlan(incorrectParams)
+
+        then: "PaystackException is thrown"
+        thrown(PaystackException)
     }
 
-    void "Test getAllTransactions() works as expected"() {
-        setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "fetchPlan works as expected"() {
+        when: "fetchPlan is called and Paystack request fails"
+        service.fetchPlan(23)
 
-        when: "getAllTransactions() is called"
-        paystackService.getAllTransactions()
-
-        then: "getRequest() is called once"
-        1 * paystackService.getRequest(*_) >> [:]
+        then: 'PaystackException is thrown'
+        service.httpUtilityService.getRequest(*_) >> [:]
+        thrown(PaystackException)
+        0 * _
     }
 
-    void "Test createPlan() works as expected"() {
-        setup:
-        2 * paystackService.getSecretKey() >> "340830okowkeow"
-        2 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "test exportTransaction works as expected"() {
+        when: "fetchPlan is called and request to Paystack fails"
+        service.exportTransaction([:])
 
-        paystackService.verifyPlanInterval(_) >> false
-
-        when: "createPlan() is called is incorrect interval"
-        Map params = [:]
-        paystackService.createPlan(params)
-
-        then: "an exception is thrown"
-        thrown(Exception)
-
-        when: "createPlan() is called with correct interval"
-        paystackService.verifyPlanInterval(_) >> true
-        Map _params = [:]
-        paystackService.createPlan(_params)
-
-        then: "postRequest() is called"
-        1 * paystackService.postRequest(*_) >> [:]
-    }
-
-    void "fetchPlan() works as expected"() {
-        setup:
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
-
-        when: "fetchPlan() is called"
-        paystackService.fetchPlan(23)
-
-        then: "getRequest() is called once"
-        1 * paystackService.getRequest(*_) >> [:]
-    }
-
-    void " Test exportTransaction() works as expected"() {
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
-
-        when: "exportTransaction() is called"
-        Map params = [:]
-        paystackService.exportTransaction(params)
-
-        then: "getRequest() is called once"
-        1 * paystackService.getRequest(*_) >> [:]
+        then: 'PaystackException is thrown'
+        service.httpUtilityService.getRequest(*_) >> [:]
+        thrown(PaystackException)
+        0 * _
     }
 
 
-    void " Test createSubscription() works as expected"() {
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+    void " Test createSubscription works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+        when:
+        Map params = [customer: 'nriagu chidubem']
+        Map<String, String> response = service.createSubscription(params)
 
-        when: "createSubscription() is called"
-        Map params = [:]
-        paystackService.createSubscription(params)
-
-        then: "postRequest() is called"
-        1 * paystackService.postRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.postRequest(*_) >> mockResponse
+        mockResponse == response
     }
 
-    void "Test enableSubscription() works as expected"() {
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "test enableSubscription works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+        Map params = [code: '123', token: 'qwerty']
 
-        when: "enableSubscription() is called"
-        Map params = [:]
-        paystackService.enableSubscription(params)
+        when: 'required parameters are present'
+        Map<String, String> response = service.enableSubscription(params)
 
-        then: "postRequest() is called once"
-        1 * paystackService.postRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.postRequest(*_) >> { String url, Map<String, String> param, String authString ->
+            param == params
+            return mockResponse
+        }
+        mockResponse == response
+
+        when: 'required parameters are not present'
+        service.enableSubscription([:])
+
+        then: 'PaystackValidationException is thrown'
+        thrown(PaystackValidationExecption)
     }
 
-    void "Test disableSubscription() works as expected"() {
-        1 * paystackService.getSecretKey() >> "340830okowkeow"
-        1 * paystackService.getEndPoint() >> "http://paystack.co"
+    void "Test disableSubscription works as expected"() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+        Map params = [code: '123', token: 'qwerty']
 
-        when: "disableSubscription() is called"
-        Map params = [:]
-        paystackService.disableSubscription(params)
+        when: 'required parameters are present'
+        Map<String, String> response = service.disableSubscription(params)
 
-        then: "postRequest() is called once"
-        1 * paystackService.postRequest(*_) >> [:]
+        then:
+        service.httpUtilityService.postRequest(*_) >> { String url, Map<String, String> param, String authString ->
+            param == params
+            return mockResponse
+        }
+        mockResponse == response
+
+        when: 'required parameters are not present'
+        service.disableSubscription([:])
+
+        then: 'PaystackValidationException is thrown'
+        thrown(PaystackValidationExecption)
     }
+
+    void 'test verifyBVNMatch verifies if BVN matches account number'() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when: 'required input parameters are present'
+        Map<String, String> params = [bvn: '009872343211', account_number: '098732323', bank_code: '18973']
+        Map<String, String> response = service.verifyBVNMatch(params)
+
+        then:
+        service.httpUtilityService.postRequest(*_) >> mockResponse
+        assert mockResponse == response
+        0 * _
+
+        when: 'required input parameters are not present'
+        Map<String, String> parameters = [bvn: '', account_number: '', last_name: 'Nriagu']
+        service.verifyBVNMatch(parameters)
+
+        then:
+        service.httpUtilityService.postRequest(*_) >> mockResponse
+        thrown(PaystackValidationExecption)
+        0 * _
+    }
+
+
+    void 'test resolveBVN should return account data when BVN is provided'() {
+        given:
+        Map<String, String> mockResponse = [status: 'true']
+
+        when:
+        final String BVN = '1234567890'
+        Map<String, String> response = service.resolveBVN(BVN)
+
+        then:
+        service.httpUtilityService.getRequest(*_) >> mockResponse
+        response == mockResponse
+        0 * _
+
+        when: 'BVN is null'
+        String bvn = null
+        service.resolveBVN(bvn)
+
+        then:
+        thrown(PaystackValidationExecption)
+        0 * _
+    }
+
 }
+
+

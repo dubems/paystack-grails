@@ -2,43 +2,39 @@ package com.dubems
 
 import grails.core.GrailsApplication
 import grails.util.Environment
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import org.apache.http.client.methods.CloseableHttpResponse
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.StringEntity
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.impl.client.HttpClients
-import org.apache.http.util.EntityUtils
+import groovy.util.logging.Slf4j
+import org.springframework.beans.factory.annotation.Value
+import paystack.grails.PaystackPlanInterval
+import paystack.grails.Utils
+import paystack.grails.exceptions.PaystackException
+import paystack.grails.exceptions.PaystackValidationExecption
+import paystack.grails.exceptions.VerifyPaymentException
 
 /**
  * @athor Nriagu Chidubem
  * @email <nriagudubem@gmail.com>
  */
-
-class PaystackService {
+@Slf4j
+class PaystackService implements Utils {
 
     GrailsApplication grailsApplication
 
-    /**
-     * get PAYSTACK endpoint
-     */
-    String getEndPoint() {
-        return grailsApplication.config.paystack.endpoint
-    }
+    HttpUtilityService httpUtilityService
+
+    private final static String BEARER = "Bearer"
+
+    @Value('${paystack.endpoint}')
+    String endPoint
+
     /**
      * get the secret used for API Request
      * When app in dev, use the testSecretKey else use the liveSecretKey
      */
-    String getSecretKey() {
-        if (Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
-                Environment.current.name == "${Environment.TEST}".toLowerCase()) {
-            return grailsApplication.config.paystack.testSecretKey
+    private String getSecretKey() {
+        if (Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() || Environment.current.name == "${Environment.TEST}".toLowerCase()) {
+            return grailsApplication.config.getProperty('paystack.testSecretKey')
         } else {
-            return grailsApplication.config.paystack.liveSecretKey
+            return grailsApplication.config.getProperty('paystack.liveSecretKey')
         }
 
     }
@@ -47,35 +43,26 @@ class PaystackService {
      * get the public key for the API Request
      *  When app in dev, use the testPublicKey else use the livePublicKey
      */
-    String getPublicKey() {
-        if (Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() ||
-                Environment.current.name == "${Environment.TEST}".toLowerCase()) {
-            return grailsApplication.config.paystack.testPublicKey
+    private String getPublicKey() {
+        if (Environment.current.name == "${Environment.DEVELOPMENT}".toLowerCase() || Environment.current.name == "${Environment.TEST}".toLowerCase()) {
+            return grailsApplication.config.getProperty('paystack.testPublicKey')
         } else {
-            return grailsApplication.config.paystack.livePublicKey
+            return grailsApplication.config.getProperty('paystack.livePublicKey')
         }
     }
     /**
      * Get authorization url from paystack
      * The authorization url is to redirect to paystack for payment
      * @params params : this contains info to be sent to PAYSTACK(email, amount,...)
-     * @return
+     * @return Authorization Url
      */
-    def getAuthUrl(params) {
-        def response = this.makePaymentRequest(params)
-        return response.data?.authorization_url
-    }
-
-    /**
-     * Validate params being sent to paystack
-     * @param params
-     * @return
-     */
-    def validate(Map params) {
+    String getAuthUrl(Map<String, String> params) {
         if (!params.amount || !params.email) {
-            throw new Exception('Incomplete Parameters')
+            throw new PaystackValidationExecption('Incomplete Parameters. either amount or email is missing')
         }
-        return this
+        Map<String, String> response = makePaymentRequest(params)
+        validatePaystackResponse(response)
+        return response?.data?.authorization_url
     }
 
     /**
@@ -83,144 +70,65 @@ class PaystackService {
      * This returns the authorization url
      * @param params : THis contains info to be sent PAYSTACK(email,amount,...)
      */
-    def makePaymentRequest(params) {
-        String authString = "Bearer " + secretKey
-        String url = endPoint + "/transaction/initialize"
+    private Map<String, String> makePaymentRequest(final Map<String, String> params) {
+        final String authString = "Bearer " + secretKey
+        final String url = endPoint + "/transaction/initialize"
 
         Map reqParams = [
                 amount      : params.amount,
                 email       : params.email,
-                reference   : this.generateTrxnRef(),
+                reference   : generateTransactionRef(),
                 plan        : params.plan ?: '',
                 first_name  : params.first_name ?: '',
                 last_name   : params.last_name ?: '',
                 metadata    : params.metadata ?: [:],
                 callback_url: params.callback_url ?: ''
         ]
-
-        return this.postRequest(url, reqParams, authString)
-
+        Map<String, String> response = httpUtilityService.postRequest(url, reqParams, authString)
+        return response
     }
 
-    /**
-     * Generate a Unique Transaction reference
-     * this is used to verify the transaction
-     * @return
-     */
-    String generateTrxnRef() {
-        List numPool = 0..9
-        List alphaPoolCapital = 'A'..'Z'
-        List alphaPoolSmall = 'a'..'z'
-        List allPool = (numPool + alphaPoolCapital + alphaPoolSmall)
-        Collections.shuffle(allPool)
-        def trxnReference = allPool.subList(0, 32)
-        String result = trxnReference.join("")
-
-        return result
-
-    }
 
     /**
      * Verify a transaction
      * @param reference : transaction reference
      * @return : response from paystack
      */
-    Map verify(String reference) {
+    Map<String, String> verifyTransaction(final String reference) throws VerifyPaymentException {
+        if (!reference) throw new PaystackValidationExecption("Kindly provide payment reference")
 
-        String authString = "Bearer " + secretKey
-        String url = endPoint + "/transaction/verify/${reference}"
-
-        Map response = this.getRequest(url, authString)
-        if (response?.data?.status == "failed") {
-            throw new Exception("Transaction could not be verified")
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/transaction/verify/${reference}"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        if (response?.status != "true") {
+            final String failureMessage = response?.message
+            throw new VerifyPaymentException("Transaction could not be verified: ${failureMessage}")
         }
-
         return response
     }
+
     /**
      * Get the payment data from paystack after verification
      * @param params
      * @return
      */
-    Map getPaymentData(params) {
-        return this.verify(params?.reference)
+    Map<String, String> getPaymentData(Map<String, String> params) {
+        return verifyTransaction(params?.reference)
     }
 
     /**
-     * Make A get request to the specified resource(url)
-     * @param url
-     * @param authString
+     *
+     * @param queryParam : Optional queryParam
      * @return
      */
-    Map getRequest(String url, String authString) {
-        CloseableHttpClient client = HttpClientBuilder.create().build()
-        HttpGet httpGet = getHttpGet(url)
-        httpGet.addHeader("Authorization", authString)
-        CloseableHttpResponse result = client.execute(httpGet)
-        def entity = result.getEntity() // get result
-        String responseBody = EntityUtils.toString(entity); // extract response body
-        def jsonSlurper = getJsonSlurper() // for parsing response
-        def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
-        result.close()
+    Map<String, String> listTransactions(final Map<String, String> queryParam) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/transaction?${mapQueryParams(queryParam)}"
 
-        return responseMap as Map
-    }
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
 
-    /**
-     * Make a post request the the specified resource(url)
-     * @param url
-     * @param data
-     * @param authString
-     * @return
-     */
-    Map postRequest(String url, Map data, String authString) {
-        def postParams = getJsonBuilder(data).toPrettyString()
-        CloseableHttpClient client = HttpClients.createDefault()
-        StringEntity requestEntity = this.getStringEntity(
-                postParams,
-                ContentType.APPLICATION_JSON)
-        HttpPost request = this.getHttpPost(url)
-        request.setHeader("Authorization", authString)
-        request.setEntity(requestEntity)
-        CloseableHttpResponse response = client.execute(request)
-        def entity = response.getEntity()
-        String responseBody = EntityUtils.toString(entity)
-        def jsonSlurper = this.getJsonSlurper() // for parsing response
-        def responseMap = jsonSlurper.parseText(responseBody); // parse into json object
-        response.close() // free system resources
-
-        return responseMap as Map
-    }
-
-    JsonBuilder getJsonBuilder(Map data) {
-        return new JsonBuilder(data)
-    }
-
-    StringEntity getStringEntity(postParams, contentType) {
-        return new StringEntity(postParams, contentType)
-    }
-
-    HttpGet getHttpGet(String url) {
-        return new HttpGet(url)
-    }
-
-    HttpPost getHttpPost(String url) {
-        return new HttpPost(url)
-    }
-
-    JsonSlurper getJsonSlurper() {
-        return new JsonSlurper()
-    }
-
-    /**
-     * List All Transactions
-     * @return
-     */
-    Map listTransactions() {
-        String authString = "Bearer " + secretKey
-        String url = endPoint + "/transaction/"
-
-        return this.getRequest(url, authString)
+        return response
     }
 
     /**
@@ -228,11 +136,13 @@ class PaystackService {
      * @param id : identifier of transaction to fetch
      * @return
      */
-    Map fetchTransaction(int id) {
-        String authString = "Bearer " + secretKey
-        String url = endPoint + "/transaction/" + id
+    Map<String, String> fetchTransaction(int id) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/transaction/${id}"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
 
-        return this.getRequest(url, authString)
+        return response
     }
 
     /**
@@ -240,13 +150,12 @@ class PaystackService {
      * @param params
      * @return
      */
-    Map createCustomer(params) {
-        String authString = "Bearer " + secretKey
-        String url = endPoint + "/customer"
-
+    Map<String, String> createCustomer(final Map<String, String> params) {
         if (!params.email) {
-            throw new Exception("Kindly provide customers email")
+            throw new PaystackValidationExecption("Kindly provide customers email")
         }
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/customer"
 
         Map reqParams = [
                 email     : params.email,
@@ -255,18 +164,22 @@ class PaystackService {
                 phone     : params.phone ?: "",
                 metadata  : params.metadata ?: [:]
         ]
-        return this.postRequest(url, reqParams, authString)
+        Map<String, String> response = httpUtilityService.postRequest(url, reqParams, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
     /**
      * List all customers on your Paystack account
      * @return
      */
-    Map getAllCustomers() {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/customer'
+    Map<String, String> getAllCustomers(final Map<String, String> queryParam) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = "${endPoint}/customer?${mapQueryParams(queryParam)}"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
 
-        return this.getRequest(url, authString)
+        return response
     }
 
     /**
@@ -274,77 +187,63 @@ class PaystackService {
      * @param customerId
      * @return
      */
-    Map fetchCustomer(customerId) {
+    Map<String, String> fetchCustomer(long customerId) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/customer/${customerId}"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
 
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + "/customer/" + customerId
-
-        return this.getRequest(url, authString)
-
+        return response
     }
 
     /**
      * Return all plans on your paystack account
      * @return
      */
-    Map getAllPlans() {
-        String authString = 'Bearer ' + secretKey
+    Map<String, String> getAllPlans() {
+        final String authString = "${BEARER} ${secretKey}"
         String url = endPoint + '/plan'
-
-        return this.getRequest(url, authString)
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
     /**
      * Return all transactions on you paystack account
      * @return
      */
-    Map getAllTransactions() {
-        String authString = 'Bearer ' + secretKey
+    Map<String, String> getAllTransactions() {
+        final String authString = "${BEARER} ${secretKey}"
         String url = endPoint + '/transaction'
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
 
-        return this.getRequest(url, authString)
+        return response
     }
 
     /**
      * Create plan
      * @return
      */
-    Map createPlan(params) {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/plan'
+    Map<String, String> createPlan(final Map<String, String> params) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/plan'
 
-        if (verifyPlanInterval(params.interval)) {
+        PaystackPlanInterval planInterval = verifyPlanInterval(params.interval)
 
-            Map reqParams = [
-                    name         : params.name,
-                    description  : params.description,
-                    amount       : params.amount,
-                    send_invoices: params.send_invoices,
-                    send_sms     : params.send_sms,
-                    currency     : params.currency,
-                    interval     : params.interval
-            ]
+        Map reqParams = [
+                name         : params.name,
+                description  : params.description,
+                amount       : params.amount,
+                send_invoices: params.send_invoices,
+                send_sms     : params.send_sms,
+                currency     : params.currency,
+                interval     : planInterval.name()
+        ]
 
-            return postRequest(url, reqParams, authString)
-        }
-
-        throw new Exception(params.interval + " Is not a valid interval format")
-
-
-    }
-
-    /**
-     * Verify the plan interval for plan creation
-     * @param interval
-     * @return
-     */
-    boolean verifyPlanInterval(String interval) {
-        List intervals = ["hourly", "daily", "weekly", "monthly", "annually"]
-        if (interval in intervals) {
-            return true
-        }
-
-        return false
+        Map<String, String> response = httpUtilityService.postRequest(url, reqParams, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
     /**
@@ -352,11 +251,14 @@ class PaystackService {
      * @param planId
      * @return
      */
-    Map fetchPlan(planId) {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/plan/' + planId
+    Map<String, String> fetchPlan(long planId) {
+        final String authString = "${BEARER} ${secretKey}"
+        String url = endPoint + "/plan/${planId}"
 
-        return getRequest(url, authString)
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+
+        return response
     }
 
     /**
@@ -364,14 +266,12 @@ class PaystackService {
      * @param params
      * @return
      */
-    Map exportTransaction(params) {
-        String authString = 'Bearer ' + secretKey
-        def from = params.from
-        def to = params.to
-        boolean settled = params.settled
-        String url = endPoint + '/transaction/export?from=' + from + 'to=' + to + 'settled=' + settled
-
-        return this.getRequest(url, authString)
+    Map<String, String> exportTransaction(final Map<String, String> params) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/transaction/export?${mapQueryParams(params)}"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
     /**
@@ -384,17 +284,19 @@ class PaystackService {
      *
      * @return
      */
-    Map createSubscription(params) {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/subscription'
-        def postParams = [
+    Map<String, String> createSubscription(final Map<String, String> params) {
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/subscription'
+        Map postParams = [
                 customer     : params.customer,
                 plan         : params.plan,
                 authorization: params.authorization,
-                start_date   : params.startDate
+                start_date   : params.start_date
         ]
+        Map<String, String> response = httpUtilityService.postRequest(url, postParams, authString)
+        validatePaystackResponse(response)
+        return response
 
-        return this.postRequest(url, postParams, authString)
     }
 
     /**
@@ -402,16 +304,18 @@ class PaystackService {
      * @param params
      * @return
      */
-    Map enableSubscription(params) {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/subscription/enable'
+    Map<String, String> enableSubscription(final Map<String, String> params) {
+        if (!params.code || !params.token) throw new PaystackValidationExecption("Kindly provide code and token to enable subscription")
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/subscription/enable'
 
-        def postParam = [
+        Map postParam = [
                 code : params.code,
                 token: params.token
         ]
-
-        return this.postRequest(url, postParam, authString)
+        Map<String, String> response = httpUtilityService.postRequest(url, postParam, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
     /**
@@ -419,17 +323,108 @@ class PaystackService {
      * @param params
      * @return
      */
-    Map disableSubscription(params) {
-        String authString = 'Bearer ' + secretKey
-        String url = endPoint + '/subscription/disable'
+    Map<String, String> disableSubscription(final Map<String, String> params) {
+        if (!params.code || !params.token) throw new PaystackValidationExecption("Kindly provide code and token to enable subscription")
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/subscription/disable'
 
-        def postParam = [
+        Map postParam = [
                 code : params.code,
                 token: params.token
         ]
-
-        return this.postRequest(url, postParam, authString)
+        Map<String, String> response = httpUtilityService.postRequest(url, postParam, authString)
+        validatePaystackResponse(response)
+        return response
     }
 
+    /**
+     * Verify BVN Match
+     * @param params
+     * @return
+     */
+    Map<String, String> verifyBVNMatch(final Map<String, String> params) {
+        if (!params.bvn || !params.account_number || !params.bank_code) {
+            throw new PaystackValidationExecption('Either BVN, account_number or bank_code is missing')
+        }
 
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/bvn/match'
+
+        Map payload = [
+                bvn           : params.bvn,
+                account_number: params.account_number,
+                bank_code     : params.bank_code,
+                first_name    : params.first_name,
+                last_name     : params.last_name,
+                middle_name   : params.middle_name,
+        ]
+
+        Map<String, String> response = httpUtilityService.postRequest(url, payload, authString)
+        validatePaystackResponse(response)
+        return response
+    }
+
+    /**
+     * Resolve BVN
+     * @param BVN
+     * @return
+     */
+    Map<String, String> resolveBVN(final String BVN) {
+        if (!BVN) throw new PaystackValidationExecption("Kindly provide BVN")
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + '/bank/resolve_bvn/' + BVN
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+        return response
+    }
+
+    /**
+     * Confirms that an account number and bank code matches
+     * @param accountNumber
+     * @param bankCode
+     * @return
+     */
+    Map<String, String> resolveAccountNumber(final String accountNumber, final String bankCode) {
+        if (!accountNumber || !bankCode) throw new PaystackValidationExecption('either account_number or bank_code is missing')
+        final String authString = "${BEARER} ${secretKey}"
+        final String url = endPoint + "/bank/resolve?account_number=$accountNumber&bank_code=$bankCode"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+        return response
+    }
+
+    /**
+     * Takes first 6 digits of the cardPAN and returns some info about the card
+     * @param cardBIN
+     * @return
+     */
+    Map<String, String> resolveCardBIN(long cardBIN) {
+        final String authString = "${BEARER} ${secretKey}"
+        final url = endPoint + "/decision/bin/$cardBIN"
+        Map<String, String> response = httpUtilityService.getRequest(url, authString)
+        validatePaystackResponse(response)
+        return response
+    }
+
+    /**
+     * Verify the plan interval for plan creation
+     * @param interval
+     * @return
+     */
+    private static PaystackPlanInterval verifyPlanInterval(String interval) {
+        PaystackPlanInterval planInterval
+        try {
+            planInterval = PaystackPlanInterval.valueOf(interval.toUpperCase())
+        } catch (IllegalArgumentException ex) {
+            throw new PaystackException(interval + " is not a valid interval format, ${ex.message}")
+        }
+        return planInterval
+    }
+
+    private static void validatePaystackResponse(final Map<String, String> response) {
+        log.error("status ${response?.status}")
+        if (response?.status != "true") {
+            throw new PaystackException("An error occurred: ${response?.message ?: "Request to paystack was not successful"}")
+        }
+    }
 }
