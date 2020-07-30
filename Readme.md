@@ -6,7 +6,7 @@
 ## Installation
 Add the below line to your build.gradle file
 
-```compile 'org.grails.plugins:paystack-grails:0.3.2'```
+```compile 'org.grails.plugins:paystack-grails:1.0.5'```
 ## Configuration
 ```yml
 Include Paystack keys(in application.yml) gotten from your dashboard as follows
@@ -44,10 +44,10 @@ class TestController {
     def index() { }
 
     def makePaymentRequest(){
-        String authUrl =  paystackService.validate(params).getAuthUrl(params)
+        String authUrl =  paystackService.getAuthUrl(params)
         redirect(url:authUrl)
     }
-    }
+  }
 ```
 * Handle Paystack callback
 * params(paystack calls ur method with a reference parameter)
@@ -55,7 +55,8 @@ class TestController {
 ```groovy
 
     def handlePaystackCallback(){
-        def paymentDetails =  paystackService.getPaymentData(params)
+       final String reference = params.get('reference') // reference from paystack webhook
+        Map<String, String> paymentDetails =  paystackService.getPaymentData(reference)
          println($paymentDetails)
         // Now you have the payment details,
         // you can store the authorization_code in your db to allow for recurrent subscriptions

@@ -10,10 +10,6 @@ buildscript {
     }
 }
 
-//
-//version "0.3.3"
-//group "com.dubems.paystack"
-
 apply plugin: "eclipse"
 apply plugin: "idea"
 apply plugin: "org.grails.grails-plugin"
@@ -41,7 +37,7 @@ configurations {
     }
 }
 
-version "0.3.3"
+version "1.0.5"
 group "org.grails.plugins"
 bintray {
     pkg {
